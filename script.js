@@ -1,33 +1,35 @@
 let pdfDoc = null;
 let pageNum = 1;
-let zoom = 1;
+let scale = 1;
+let isRendering = false;
 
 const canvas = document.getElementById("pdfCanvas");
 const ctx = canvas.getContext("2d");
-const zoomText = document.getElementById("zoomText");
+const zoomInfo = document.getElementById("zoomInfo");
 
-document.getElementById("pdfFile").addEventListener("change", function () {
-  const file = this.files[0];
+document.getElementById("pdfInput").addEventListener("change", e => {
+  const file = e.target.files[0];
   if (!file) return;
 
   const reader = new FileReader();
-  reader.onload = function () {
-    const typedArray = new Uint8Array(this.result);
-    pdfjsLib.getDocument({ data: typedArray }).promise.then(pdf => {
-      pdfDoc = pdf;
-      pageNum = 1;
-      zoom = 1;
-      renderPage();
-    });
+  reader.onload = () => {
+    pdfjsLib.getDocument({ data: new Uint8Array(reader.result) }).promise
+      .then(pdf => {
+        pdfDoc = pdf;
+        pageNum = 1;
+        scale = 1;
+        renderPage();
+      });
   };
   reader.readAsArrayBuffer(file);
 });
 
 function renderPage() {
-  if (!pdfDoc) return;
+  if (!pdfDoc || isRendering) return;
+  isRendering = true;
 
   pdfDoc.getPage(pageNum).then(page => {
-    const viewport = page.getViewport({ scale: zoom });
+    const viewport = page.getViewport({ scale });
     const dpr = window.devicePixelRatio || 1;
 
     canvas.width = viewport.width * dpr;
@@ -35,60 +37,57 @@ function renderPage() {
     canvas.style.width = viewport.width + "px";
     canvas.style.height = viewport.height + "px";
 
-    ctx.setTransform(1, 0, 0, 1, 0, 0);
     ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
 
-    page.render({ canvasContext: ctx, viewport });
-    zoomText.innerText = Math.round(zoom * 100) + "%";
+    page.render({ canvasContext: ctx, viewport }).promise.then(() => {
+      zoomInfo.textContent = Math.round(scale * 100) + "%";
+      isRendering = false;
+    });
   });
 }
 
-function nextPage() {
+/* BUTTON CONTROLS */
+document.getElementById("nextBtn").onclick = () => {
   if (pageNum < pdfDoc.numPages) {
     pageNum++;
     renderPage();
   }
-}
+};
 
-function prevPage() {
+document.getElementById("prevBtn").onclick = () => {
   if (pageNum > 1) {
     pageNum--;
     renderPage();
   }
-}
+};
 
-function zoomIn() {
-  zoom = Math.min(zoom + 0.1, 2.5);
-  renderPage();
-}
+document.getElementById("zoomIn").onclick = () => smoothZoom(1.1);
+document.getElementById("zoomOut").onclick = () => smoothZoom(0.9);
 
-function zoomOut() {
-  zoom = Math.max(zoom - 0.1, 0.7);
-  renderPage();
-}
+/* SMOOTH ZOOM (PRO FEEL) */
+function smoothZoom(factor) {
+  let target = Math.min(Math.max(scale * factor, 0.6), 2.5);
+  let start = scale;
+  let step = 0;
 
-/* Pinch to Zoom */
-let startDist = 0;
-document.addEventListener("touchstart", e => {
-  if (e.touches.length === 2) {
-    startDist = Math.hypot(
-      e.touches[0].clientX - e.touches[1].clientX,
-      e.touches[0].clientY - e.touches[1].clientY
-    );
-  }
-}, { passive: false });
-
-document.addEventListener("touchmove", e => {
-  if (e.touches.length === 2) {
-    e.preventDefault();
-    const newDist = Math.hypot(
-      e.touches[0].clientX - e.touches[1].clientX,
-      e.touches[0].clientY - e.touches[1].clientY
-    );
-
-    zoom += (newDist - startDist) * 0.0005;
-    zoom = Math.max(0.7, Math.min(zoom, 2.5));
-    startDist = newDist;
+  function animate() {
+    step += 0.08;
+    scale = start + (target - start) * step;
     renderPage();
+    if (step < 1) requestAnimationFrame(animate);
   }
-}, { passive: false });
+  animate();
+}
+
+/* GESTURE PAGE SWIPE */
+let touchStartX = 0;
+document.addEventListener("touchstart", e => {
+  if (e.touches.length === 1) touchStartX = e.touches[0].clientX;
+});
+
+document.addEventListener("touchend", e => {
+  let diff = e.changedTouches[0].clientX - touchStartX;
+  if (Math.abs(diff) > 60) {
+    diff < 0 ? nextBtn.click() : prevBtn.click();
+  }
+});

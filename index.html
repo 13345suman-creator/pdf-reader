@@ -1,32 +1,37 @@
 <!DOCTYPE html>
-<html>
+<html lang="en">
 <head>
-  <meta charset="UTF-8">
-  <title>PDF Reader</title>
+<meta charset="UTF-8">
+<title>Next-Gen PDF Reader</title>
 
-  <!-- PDF.js -->
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/2.16.105/pdf.min.js"></script>
-  <script>
-    pdfjsLib.GlobalWorkerOptions.workerSrc =
-      "https://cdnjs.cloudflare.com/ajax/libs/pdf.js/2.16.105/pdf.worker.min.js";
-  </script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/2.16.105/pdf.min.js"></script>
+<script>
+  pdfjsLib.GlobalWorkerOptions.workerSrc =
+    "https://cdnjs.cloudflare.com/ajax/libs/pdf.js/2.16.105/pdf.worker.min.js";
+</script>
 
-  <link rel="stylesheet" href="style.css">
+<link rel="stylesheet" href="style.css">
 </head>
+
 <body>
 
-<div id="topBar">
-  <input type="file" id="pdfFile" accept="application/pdf">
-  <span id="zoomText">100%</span>
+<!-- FIXED UI LAYER -->
+<div id="uiLayer">
+  <input type="file" id="pdfInput" accept="application/pdf">
+  <div id="zoomInfo">100%</div>
 </div>
 
-<canvas id="pdfCanvas"></canvas>
+<!-- PDF LAYER -->
+<div id="readerWrapper">
+  <canvas id="pdfCanvas"></canvas>
+</div>
 
+<!-- BOTTOM CONTROLS -->
 <div id="controls">
-  <button onclick="prevPage()">⬅ Prev</button>
-  <button onclick="nextPage()">Next ➡</button>
-  <button onclick="zoomOut()">➖</button>
-  <button onclick="zoomIn()">➕</button>
+  <button id="prevBtn">◀</button>
+  <button id="nextBtn">▶</button>
+  <button id="zoomOut">−</button>
+  <button id="zoomIn">＋</button>
 </div>
 
 <script src="script.js"></script>

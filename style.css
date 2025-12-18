@@ -1,35 +1,62 @@
+* { box-sizing: border-box; }
+
 body {
   margin: 0;
-  background: #111;
+  background: #0f172a;
   color: #fff;
-  font-family: Arial, sans-serif;
-  text-align: center;
+  font-family: system-ui, sans-serif;
+  overflow: hidden;
 }
 
-#topBar {
+/* UI LAYER (never zooms) */
+#uiLayer {
+  position: fixed;
+  top: 0;
+  width: 100%;
   padding: 8px;
-  background: #1f2937;
   display: flex;
   justify-content: space-between;
+  background: rgba(15,23,42,0.95);
+  z-index: 10;
+}
+
+#zoomInfo {
+  font-size: 14px;
+}
+
+/* PDF LAYER */
+#readerWrapper {
+  position: absolute;
+  top: 48px;
+  bottom: 56px;
+  width: 100%;
+  display: flex;
+  justify-content: center;
   align-items: center;
+  overflow: hidden;
 }
 
-#pdfCanvas {
+canvas {
   background: white;
-  max-width: 100%;
-  margin-top: 5px;
+  border-radius: 6px;
 }
 
+/* CONTROLS */
 #controls {
-  margin: 10px;
+  position: fixed;
+  bottom: 8px;
+  width: 100%;
+  display: flex;
+  justify-content: center;
+  gap: 10px;
+  z-index: 10;
 }
 
 button {
-  padding: 8px 12px;
-  margin: 4px;
-  border: none;
-  border-radius: 6px;
   background: #4f46e5;
+  border: none;
   color: white;
-  font-size: 14px;
+  padding: 10px 14px;
+  border-radius: 8px;
+  font-size: 16px;
 }
