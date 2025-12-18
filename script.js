@@ -1,24 +1,10 @@
 let pdfDoc = null;
 let pageNum = 1;
-let isDouble = false;
-let baseScale = 1;
-let userZoom = 1;
+let zoom = 1;
 
-const singleCanvas = document.getElementById("pdfCanvas");
-const singleCtx = singleCanvas.getContext("2d");
-
-const leftCanvas = document.getElementById("leftPage");
-const rightCanvas = document.getElementById("rightPage");
-const leftCtx = leftCanvas.getContext("2d");
-const rightCtx = rightCanvas.getContext("2d");
-
-const zoomCenter = document.getElementById("zoomCenter");
-const zoomTop = document.getElementById("zoomTop");
-
-document.getElementById("singleBtn").onclick = () => { isDouble = false; render(); };
-document.getElementById("doubleBtn").onclick = () => { isDouble = true; render(); };
-document.getElementById("nextBtn").onclick = nextPage;
-document.getElementById("prevBtn").onclick = prevPage;
+const canvas = document.getElementById("pdfCanvas");
+const ctx = canvas.getContext("2d");
+const zoomText = document.getElementById("zoomText");
 
 document.getElementById("pdfFile").addEventListener("change", function () {
   const file = this.files[0];
@@ -27,102 +13,82 @@ document.getElementById("pdfFile").addEventListener("change", function () {
   const reader = new FileReader();
   reader.onload = function () {
     const typedArray = new Uint8Array(this.result);
-    pdfjsLib.getDocument(typedArray).promise.then(pdf => {
+    pdfjsLib.getDocument({ data: typedArray }).promise.then(pdf => {
       pdfDoc = pdf;
       pageNum = 1;
-      userZoom = 1;
-      render();
+      zoom = 1;
+      renderPage();
     });
   };
   reader.readAsArrayBuffer(file);
 });
 
-window.addEventListener("resize", () => {
-  if (pdfDoc) render();
-});
-
-// ---------- SCALE ----------
-function getScale(page, mode) {
-  const viewport = page.getViewport({ scale: 1 });
-  const w = window.innerWidth;
-  const h = window.innerHeight;
-
-  baseScale = mode === "single"
-    ? w / viewport.width
-    : (w / 2) / viewport.width;
-
-  const heightScale = (h * 0.85) / viewport.height;
-  baseScale = Math.min(baseScale, heightScale);
-
-  return baseScale * userZoom;
-}
-
-// ---------- RENDER ----------
-function render() {
+function renderPage() {
   if (!pdfDoc) return;
-  isDouble ? renderDouble() : renderSingle();
-  updateZoomUI(false);
-}
-
-function renderSingle() {
-  document.getElementById("doublePage").style.display = "none";
-  singleCanvas.style.display = "block";
 
   pdfDoc.getPage(pageNum).then(page => {
-    const scale = getScale(page, "single");
-    drawPage(page, singleCanvas, singleCtx, scale);
+    const viewport = page.getViewport({ scale: zoom });
+    const dpr = window.devicePixelRatio || 1;
+
+    canvas.width = viewport.width * dpr;
+    canvas.height = viewport.height * dpr;
+    canvas.style.width = viewport.width + "px";
+    canvas.style.height = viewport.height + "px";
+
+    ctx.setTransform(1, 0, 0, 1, 0, 0);
+    ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+
+    page.render({ canvasContext: ctx, viewport });
+    zoomText.innerText = Math.round(zoom * 100) + "%";
   });
 }
 
-function renderDouble() {
-  document.getElementById("doublePage").style.display = "flex";
-  singleCanvas.style.display = "none";
-
-  drawDouble(pageNum, leftCanvas, leftCtx);
-  if (pageNum + 1 <= pdfDoc.numPages)
-    drawDouble(pageNum + 1, rightCanvas, rightCtx);
-}
-
-function drawDouble(num, canvas, ctx) {
-  pdfDoc.getPage(num).then(page => {
-    const scale = getScale(page, "double");
-    drawPage(page, canvas, ctx, scale);
-  });
-}
-
-function drawPage(page, canvas, ctx, scale) {
-  const viewport = page.getViewport({ scale });
-  const dpr = window.devicePixelRatio || 1;
-
-  canvas.width = viewport.width * dpr;
-  canvas.height = viewport.height * dpr;
-  canvas.style.width = viewport.width + "px";
-  canvas.style.height = viewport.height + "px";
-
-  ctx.setTransform(1,0,0,1,0,0);
-  ctx.setTransform(dpr,0,0,dpr,0,0);
-
-  page.render({ canvasContext: ctx, viewport });
-}
-
-// ---------- NAV ----------
 function nextPage() {
-  pageNum += isDouble ? 2 : 1;
-  if (pageNum > pdfDoc.numPages) pageNum = pdfDoc.numPages;
-  render();
-}
-function prevPage() {
-  pageNum -= isDouble ? 2 : 1;
-  if (pageNum < 1) pageNum = 1;
-  render();
+  if (pageNum < pdfDoc.numPages) {
+    pageNum++;
+    renderPage();
+  }
 }
 
-// ---------- ZOOM ----------
-function zoomIn() {
-  userZoom = Math.min(userZoom + 0.1, 2.2);
-  showZoom();
-  render();
+function prevPage() {
+  if (pageNum > 1) {
+    pageNum--;
+    renderPage();
+  }
 }
+
+function zoomIn() {
+  zoom = Math.min(zoom + 0.1, 2.5);
+  renderPage();
+}
+
 function zoomOut() {
-  userZoom = Math.max(userZoom - 0.1, 0.7);
-  showZoom();
+  zoom = Math.max(zoom - 0.1, 0.7);
+  renderPage();
+}
+
+/* Pinch to Zoom */
+let startDist = 0;
+document.addEventListener("touchstart", e => {
+  if (e.touches.length === 2) {
+    startDist = Math.hypot(
+      e.touches[0].clientX - e.touches[1].clientX,
+      e.touches[0].clientY - e.touches[1].clientY
+    );
+  }
+}, { passive: false });
+
+document.addEventListener("touchmove", e => {
+  if (e.touches.length === 2) {
+    e.preventDefault();
+    const newDist = Math.hypot(
+      e.touches[0].clientX - e.touches[1].clientX,
+      e.touches[0].clientY - e.touches[1].clientY
+    );
+
+    zoom += (newDist - startDist) * 0.0005;
+    zoom = Math.max(0.7, Math.min(zoom, 2.5));
+    startDist = newDist;
+    renderPage();
+  }
+}, { passive: false });

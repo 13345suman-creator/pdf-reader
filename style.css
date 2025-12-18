@@ -1,65 +1,35 @@
 body {
   margin: 0;
-  padding: 10px;
-  background: #0f0f14;
+  background: #111;
   color: #fff;
-  text-align: center;
   font-family: Arial, sans-serif;
+  text-align: center;
 }
 
-#viewer {
-  width: 100%;
-  margin-top: 10px;
+#topBar {
+  padding: 8px;
+  background: #1f2937;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
 }
 
-canvas {
-  background: #fff;
+#pdfCanvas {
+  background: white;
   max-width: 100%;
-  height: auto;
-  border-radius: 6px;
-  box-shadow: 0 4px 12px rgba(0,0,0,0.4);
+  margin-top: 5px;
 }
 
-#doublePage {
-  display: none;
-  gap: 8px;
-  justify-content: center;
+#controls {
+  margin: 10px;
 }
 
-#doublePage canvas {
-  width: 48%;
-}
-
-.controls button {
-  margin: 5px;
+button {
   padding: 8px 12px;
+  margin: 4px;
   border: none;
   border-radius: 6px;
   background: #4f46e5;
   color: white;
-}
-
-/* Zoom UI */
-#zoomCenter {
-  position: fixed;
-  top: 50%;
-  left: 50%;
-  transform: translate(-50%, -50%);
-  background: rgba(0,0,0,0.75);
-  padding: 14px 22px;
-  border-radius: 30px;
-  font-size: 22px;
-  display: none;
-  z-index: 9999;
-}
-
-#zoomTop {
-  position: fixed;
-  top: 8px;
-  right: 12px;
-  background: rgba(0,0,0,0.6);
-  padding: 6px 10px;
-  border-radius: 8px;
-  font-size: 12px;
-  z-index: 9999;
+  font-size: 14px;
 }

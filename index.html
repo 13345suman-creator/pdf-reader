@@ -2,7 +2,7 @@
 <html>
 <head>
   <meta charset="UTF-8">
-  <title>PDF Book Reader</title>
+  <title>PDF Reader</title>
 
   <!-- PDF.js -->
   <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/2.16.105/pdf.min.js"></script>
@@ -13,34 +13,21 @@
 
   <link rel="stylesheet" href="style.css">
 </head>
-
 <body>
 
-<div id="zoomTop">Zoom: 100%</div>
-
-<h3>📘 PDF Book Reader</h3>
-
-<input type="file" id="pdfFile" accept="application/pdf">
-
-<div id="viewer">
-  <canvas id="pdfCanvas"></canvas>
-
-  <div id="doublePage">
-    <canvas id="leftPage"></canvas>
-    <canvas id="rightPage"></canvas>
-  </div>
+<div id="topBar">
+  <input type="file" id="pdfFile" accept="application/pdf">
+  <span id="zoomText">100%</span>
 </div>
 
-<div class="controls">
-  <button id="singleBtn">📄 Single</button>
-  <button id="doubleBtn">📖 Book</button>
-  <button id="prevBtn">⬅</button>
-  <button id="nextBtn">➡</button>
+<canvas id="pdfCanvas"></canvas>
+
+<div id="controls">
+  <button onclick="prevPage()">⬅ Prev</button>
+  <button onclick="nextPage()">Next ➡</button>
   <button onclick="zoomOut()">➖</button>
   <button onclick="zoomIn()">➕</button>
 </div>
-
-<div id="zoomCenter">100%</div>
 
 <script src="script.js"></script>
 </body>
