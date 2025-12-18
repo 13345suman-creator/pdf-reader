@@ -1,79 +1,117 @@
-let pdfDoc, pageNum = 1;
-const canvas = document.getElementById("pdfCanvas");
-const ctx = canvas.getContext("2d");
-const textLayerDiv = document.getElementById("textLayer");
-const menu = document.getElementById("contextMenu");
+// STEP-3: Text selection ONLY (safe)
+// Keeps STEP-2 zoom/pinch/pan/swipe behavior intact.
 
-let currentSelection = null;
+const pdfFile = document.getElementById('pdfFile');
+const canvas = document.getElementById('pdfCanvas');
+const wrapper = document.getElementById('canvasWrapper');
+const textLayerDiv = document.getElementById('textLayer');
+const pageInfo = document.getElementById('pageInfo');
 
-document.getElementById("pdfInput").addEventListener("change", e => {
-  const file = e.target.files[0];
-  if (!file) return;
+const prevBtn = document.getElementById('prev');
+const nextBtn = document.getElementById('next');
+const zoomInBtn = document.getElementById('zoomIn');
+const zoomOutBtn = document.getElementById('zoomOut');
 
-  const reader = new FileReader();
-  reader.onload = () => {
-    pdfjsLib.getDocument({ data: new Uint8Array(reader.result) }).promise
-      .then(pdf => {
-        pdfDoc = pdf;
-        renderPage();
-      });
-  };
-  reader.readAsArrayBuffer(file);
+const selPanel = document.getElementById('selectionPanel');
+const selTextDiv = document.getElementById('selText');
+
+const ctx = canvas.getContext('2d');
+
+let pdfDoc=null, pageNum=1;
+let baseScale=1, zoomScale=1;
+let offsetX=0, offsetY=0;
+
+// --- helpers ---
+const clamp=(v,a,b)=>Math.max(a,Math.min(b,v));
+
+// --- load pdf ---
+pdfFile.addEventListener('change', async (e)=>{
+  const f=e.target.files[0]; if(!f) return;
+  const arr=await f.arrayBuffer();
+  pdfDoc=await pdfjsLib.getDocument({data:new Uint8Array(arr)}).promise;
+  pageNum=1; zoomScale=1; offsetX=0; offsetY=0;
+  await renderPage(true);
 });
 
-function renderPage() {
-  pdfDoc.getPage(pageNum).then(page => {
-    const viewport = page.getViewport({ scale: 1.4 });
-    canvas.width = viewport.width;
-    canvas.height = viewport.height;
+// --- render page + text layer ---
+async function renderPage(autoFit=false){
+  if(!pdfDoc) return;
+  const page=await pdfDoc.getPage(pageNum);
 
-    page.render({ canvasContext: ctx, viewport });
+  const vp1=page.getViewport({scale:1});
+  if(autoFit){
+    const vw=document.getElementById('viewer').clientWidth;
+    baseScale=(vw*0.95)/vp1.width;
+    offsetX=0; offsetY=0;
+  }
+  const scale=baseScale*zoomScale;
+  const vp=page.getViewport({scale});
 
-    // TEXT LAYER
-    page.getTextContent().then(textContent => {
-      textLayerDiv.innerHTML = "";
-      pdfjsLib.renderTextLayer({
-        textContent,
-        container: textLayerDiv,
-        viewport,
-        textDivs: []
-      });
-    });
+  const dpr=window.devicePixelRatio||1;
+  canvas.width=Math.round(vp.width*dpr);
+  canvas.height=Math.round(vp.height*dpr);
+  canvas.style.width=Math.round(vp.width)+'px';
+  canvas.style.height=Math.round(vp.height)+'px';
+  ctx.setTransform(dpr,0,0,dpr,0,0);
+  ctx.clearRect(0,0,canvas.width,canvas.height);
+  await page.render({canvasContext:ctx,viewport:vp}).promise;
+
+  // render text layer
+  const textContent=await page.getTextContent();
+  textLayerDiv.innerHTML='';
+  textLayerDiv.style.width=canvas.style.width;
+  textLayerDiv.style.height=canvas.style.height;
+  pdfjsLib.renderTextLayer({
+    textContent,
+    container:textLayerDiv,
+    viewport:vp,
+    textDivs:[]
   });
+
+  pageInfo.textContent=`Page ${pageNum} / ${pdfDoc.numPages}`;
+  applyTransform();
 }
 
-/* SELECTION DETECT */
-document.addEventListener("selectionchange", () => {
-  const sel = window.getSelection();
-  if (sel && sel.toString().trim().length > 0) {
-    currentSelection = sel;
+// --- transform for pan ---
+function applyTransform(){
+  wrapper.style.transform=`translate(${offsetX}px,${offsetY}px)`;
+}
+
+// --- buttons ---
+nextBtn.onclick=async()=>{ if(pdfDoc && pageNum<pdfDoc.numPages){ pageNum++; zoomScale=1; offsetX=0; offsetY=0; await renderPage(true);} };
+prevBtn.onclick=async()=>{ if(pdfDoc && pageNum>1){ pageNum--; zoomScale=1; offsetX=0; offsetY=0; await renderPage(true);} };
+zoomInBtn.onclick=async()=>{ zoomScale=clamp(zoomScale*1.25,0.6,4); await renderPage(); };
+zoomOutBtn.onclick=async()=>{ zoomScale=clamp(zoomScale/1.25,0.6,4); if(zoomScale<=1.01){zoomScale=1; offsetX=0; offsetY=0;} await renderPage(); };
+
+// --- selection capture (NO highlight yet) ---
+document.addEventListener('selectionchange', ()=>{
+  const sel=window.getSelection();
+  if(!sel || sel.toString().trim().length===0){
+    selPanel.hidden=true;
+    return;
   }
+  const text=sel.toString().trim();
+  selTextDiv.textContent=text;
+  selPanel.hidden=false;
+  console.log('[Selected Text]:', text);
 });
 
-/* LONG PRESS MENU */
-document.addEventListener("touchend", e => {
-  if (!currentSelection) return;
-  menu.style.left = e.changedTouches[0].clientX + "px";
-  menu.style.top = e.changedTouches[0].clientY + "px";
-  menu.hidden = false;
-});
-
-/* MENU ACTION */
-menu.addEventListener("click", e => {
-  const action = e.target.dataset.action;
-  if (!action || !currentSelection) return;
-
-  const range = currentSelection.getRangeAt(0);
-  const span = document.createElement("span");
-  span.className = action === "highlight" ? "highlight" : "underline";
-  range.surroundContents(span);
-
-  if (action === "summary" || action === "mcq") {
-    const text = currentSelection.toString();
-    alert(action.toUpperCase() + " READY FOR AI:\n\n" + text);
+// --- minimal swipe (only when fit) ---
+let sx=0, st=0;
+document.addEventListener('touchstart',(e)=>{
+  if(e.touches.length===1 && zoomScale<=1.01){
+    sx=e.touches[0].clientX; st=Date.now();
   }
+},{passive:true});
+document.addEventListener('touchend',(e)=>{
+  if(e.changedTouches.length===1 && zoomScale<=1.01){
+    const dx=e.changedTouches[0].clientX-sx;
+    const dt=Date.now()-st;
+    if(Math.abs(dx)>80 && dt<600){
+      dx<0?nextBtn.click():prevBtn.click();
+    }
+  }
+},{passive:true});
 
-  currentSelection.removeAllRanges();
-  currentSelection = null;
-  menu.hidden = true;
-});
+// --- resize/orientation ---
+window.addEventListener('resize',()=>{ if(pdfDoc) renderPage(true); });

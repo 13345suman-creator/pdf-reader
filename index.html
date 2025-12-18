@@ -1,37 +1,48 @@
 <!DOCTYPE html>
-<html>
+<html lang="en">
 <head>
-<meta charset="UTF-8">
-<title>Next-Gen PDF Reader</title>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>PDF Reader — Step 3 (Text Selection)</title>
 
-<script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/2.16.105/pdf.min.js"></script>
-<script>
-pdfjsLib.GlobalWorkerOptions.workerSrc =
-"https://cdnjs.cloudflare.com/ajax/libs/pdf.js/2.16.105/pdf.worker.min.js";
-</script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/2.16.105/pdf.min.js"></script>
+  <script>
+    pdfjsLib.GlobalWorkerOptions.workerSrc =
+      "https://cdnjs.cloudflare.com/ajax/libs/pdf.js/2.16.105/pdf.worker.min.js";
+  </script>
 
-<link rel="stylesheet" href="style.css">
+  <link rel="stylesheet" href="style.css" />
 </head>
 <body>
-
-<div id="uiLayer">
-  <input type="file" id="pdfInput" accept="application/pdf">
-</div>
-
-<div id="viewer">
-  <div id="pageContainer">
-    <canvas id="pdfCanvas"></canvas>
-    <div id="textLayer"></div>
+  <!-- TOP BAR -->
+  <div id="topBar">
+    <input id="pdfFile" type="file" accept="application/pdf" />
+    <div id="pageInfo">Page 0 / 0</div>
   </div>
-</div>
 
-<div id="contextMenu" hidden>
-  <button data-action="highlight">Highlight</button>
-  <button data-action="underline">Underline</button>
-  <button data-action="summary">Summary</button>
-  <button data-action="mcq">MCQ</button>
-</div>
+  <!-- VIEWER -->
+  <div id="viewer">
+    <div id="canvasWrapper">
+      <canvas id="pdfCanvas"></canvas>
+      <!-- TEXT LAYER (transparent, selectable) -->
+      <div id="textLayer" class="textLayer"></div>
+    </div>
+  </div>
 
-<script src="script.js"></script>
+  <!-- BOTTOM CONTROLS -->
+  <div id="controls">
+    <button id="prev">Prev</button>
+    <button id="zoomOut">−</button>
+    <button id="zoomIn">＋</button>
+    <button id="next">Next</button>
+  </div>
+
+  <!-- SELECTION PREVIEW (debug panel) -->
+  <div id="selectionPanel" hidden>
+    <div id="selTitle">Selected Text</div>
+    <div id="selText"></div>
+  </div>
+
+  <script src="script.js"></script>
 </body>
 </html>
