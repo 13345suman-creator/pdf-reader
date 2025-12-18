@@ -12,21 +12,29 @@
 
 <link rel="stylesheet" href="style.css">
 </head>
-
 <body>
 
-<!-- FIXED UI LAYER -->
+<!-- FIXED UI -->
 <div id="uiLayer">
   <input type="file" id="pdfInput" accept="application/pdf">
   <div id="zoomInfo">100%</div>
 </div>
 
-<!-- PDF LAYER -->
+<!-- READER -->
 <div id="readerWrapper">
   <canvas id="pdfCanvas"></canvas>
+
+  <!-- CONTEXT MENU -->
+  <div id="contextMenu" hidden>
+    <button data-action="highlight">Highlight</button>
+    <button data-action="underline">Underline</button>
+    <button data-action="note">Note</button>
+    <button data-action="summary">Summary</button>
+    <button data-action="mcq">MCQ</button>
+  </div>
 </div>
 
-<!-- BOTTOM CONTROLS -->
+<!-- CONTROLS -->
 <div id="controls">
   <button id="prevBtn">◀</button>
   <button id="nextBtn">▶</button>
